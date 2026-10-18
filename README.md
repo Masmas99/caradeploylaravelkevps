@@ -1,4 +1,4 @@
-# 🚀 Panduan Hosting Laravel dari GitHub ke VPS Ubuntu
+# 🚀 Panduan deploy Laravel dari GitHub ke VPS Ubuntu
 
 <p align="center">
   <img src="images/laravel-logo.png" alt="Laravel Logo" width="160" />
