@@ -3,7 +3,6 @@
 <p align="center">
   <img src="images/laravel-logo.png" alt="Laravel Logo" width="160" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="images/vps-server.png" alt="VPS Server Logo" width="160" />
 </p>
 
 <p align="center">
@@ -81,20 +80,6 @@ Dilengkapi dengan **Generator Parameter Proyek Realtime**, Anda cukup memasukkan
 Aplikasi dokumentasi interaktif ini sudah di-deploy dan dapat diakses langsung secara online melalui:
 
 👉 **[https://masmas99.github.io/caradeploylaravelkevps/](https://masmas99.github.io/caradeploylaravelkevps/)**
-
----
-
-## 📂 Struktur File
-
-```text
-panduan/
-├── images/
-│   ├── laravel-logo.png       # Logo resmi Laravel
-│   └── vps-server.png         # Logo/Ilustrasi server VPS
-├── index.html                 # Halaman utama aplikasi panduan interaktif
-├── prd.md                     # Dokumen referensi kebutuhan produk (PRD)
-└── README.md                  # Dokumentasi proyek
-```
 
 ---
 
