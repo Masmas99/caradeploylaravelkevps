@@ -76,28 +76,11 @@ Dilengkapi dengan **Generator Parameter Proyek Realtime**, Anda cukup memasukkan
 
 ---
 
-## 💻 Cara Menjalankan Aplikasi Panduan Ini Secara Lokal
+## 🌐 Akses Website (Live Demo)
 
-Aplikasi ini bersifat murni statis (*standalone HTML*) dan dapat dijalankan langsung di lingkungan lokal Anda (Laragon, XAMPP, atau browser langsung):
+Aplikasi dokumentasi interaktif ini sudah di-deploy dan dapat diakses langsung secara online melalui:
 
-### Menggunakan Laragon:
-1. Pastikan folder proyek berada di direktori web root Laragon:
-   ```text
-   C:\laragon\www\panduan\
-   ```
-2. Pastikan service Apache/Nginx di Laragon dalam kondisi aktif (*Start All*).
-3. Buka browser dan akses URL:
-   ```text
-   http://localhost/panduan/
-   ```
-
-### Menggunakan Local Server Built-in PHP:
-Jika tanpa web server Laragon, Anda dapat menjalankan perintah berikut di terminal:
-```bash
-cd c:\laragon\www\panduan
-php -S localhost:8080
-```
-Buka browser di `http://localhost:8080`.
+👉 **[https://masmas99.github.io/caradeploylaravelkevps/](https://masmas99.github.io/caradeploylaravelkevps/)**
 
 ---
 
