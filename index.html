@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panduan Lengkap Deploy Laravel dari GitHub ke VPS Ubuntu</title>
+    <meta name="description" content="Panduan lengkap dan interaktif Deploy Laravel dari GitHub ke VPS Ubuntu (Nginx, PHP 8.3, MySQL, SSL).">
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #1e293b;
+        }
+        pre code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+        .code-box {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .code-box {
+                background: #f8fafc !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-800 antialiased font-sans">
+
+    <!-- Header -->
+    <header class="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center gap-3">
+                    <span class="px-2.5 py-1 bg-red-600 text-white font-bold text-xs rounded tracking-wider uppercase">Laravel VPS</span>
+                    <div>
+                        <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Panduan Deploy Laravel ke VPS Ubuntu</h1>
+                        <p class="text-xs text-slate-500 hidden sm:block">Nginx + PHP 8.3 + MySQL + Let's Encrypt SSL</p>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-2 no-print">
+                    <button onclick="window.print()" class="px-3 py-1.5 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-slate-50 transition">
+                        Cetak / Simpan PDF
+                    </button>
+                    <a href="#generator-box" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold shadow-sm transition">
+                        Atur Parameter
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar Indicator -->
+        <div class="w-full bg-slate-100 h-1">
+            <div id="topProgressBar" class="bg-red-600 h-1 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- PARAMETER GENERATOR BOX -->
+        <div id="generator-box" class="mb-10 p-6 bg-slate-50 border border-slate-200 rounded-xl shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3 mb-4">
+                <div>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900">1. Generator Parameter Proyek (Otomatis)</h2>
+                    <p class="text-xs text-slate-600">Ubah nilai di bawah ini, maka seluruh perintah bash, konfigurasi MySQL, .env, Nginx, dan skrip deploy di bawah otomatis berubah.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="resetDefaultConfig()" class="text-xs text-slate-500 hover:text-slate-800 underline">
+                        Reset Default
+                    </button>
+                    <button onclick="applyConfiguration()" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold">
+                        Terapkan
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <!-- Repo URL -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">URL Repository Git:</label>
+                    <input type="text" id="inputRepoUrl" value="https://github.com/Masmas99/Masmas99" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- Folder Name -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nama Folder Proyek (/var/www/...):</label>
+                    <input type="text" id="inputFolderName" value="Masmas99" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- Domain -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Domain / IP Publik VPS:</label>
+                    <input type="text" id="inputDomain" value="masmas.domainanda.com" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- PHP Version -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Versi PHP:</label>
+                    <select id="inputPhpVersion" class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                        <option value="8.3" selected>PHP 8.3 (Rekomendasi)</option>
+                        <option value="8.2">PHP 8.2</option>
+                    </select>
+                </div>
+
+                <!-- DB Name -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nama Database MySQL:</label>
+                    <input type="text" id="inputDbName" value="database" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- DB User -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">User Database MySQL:</label>
+                    <input type="text" id="inputDbUser" value="mashudiusername" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- DB Password -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Password Database MySQL:</label>
+                    <input type="text" id="inputDbPassword" value="PasswordKuat123#" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- APP_NAME -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nama Aplikasi (.env):</label>
+                    <input type="text" id="inputAppName" value="Laravel" 
+                           class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 font-mono text-slate-800 focus:outline-none focus:border-red-600">
+                </div>
+            </div>
+
+            <!-- Active Values Notice -->
+            <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <div>
+                    Parameter Aktif: 
+                    <span class="font-semibold text-slate-800 font-mono" id="labelFolder">Masmas99</span> | 
+                    <span class="font-semibold text-slate-800 font-mono" id="labelDomain">masmas.domainanda.com</span> | 
+                    <span class="font-semibold text-slate-800 font-mono" id="labelDb">database</span>
+                </div>
+                <div id="saveNotice" class="text-green-600 font-medium hidden">Parameter otomatis tersimpan!</div>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
+
+            <!-- SIDEBAR NAVIGATION -->
+            <aside class="w-full lg:w-64 shrink-0 lg:sticky lg:top-24 space-y-4 no-print">
+                <!-- Checklist Progress Widget -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div class="flex items-center justify-between mb-1.5 text-xs">
+                        <span class="font-semibold text-slate-700 uppercase">Progres Setup</span>
+                        <span id="progressLabel" class="font-bold text-red-600">0 / 7 Selesai</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden mb-3">
+                        <div id="sideProgressBar" class="bg-red-600 h-2 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <button onclick="resetChecklist()" class="text-[11px] text-slate-500 hover:text-slate-800 underline block">
+                        Reset Checklist
+                    </button>
+                </div>
+
+                <!-- Quick Search -->
+                <div>
+                    <input type="text" id="searchFilter" placeholder="Filter perintah / kata kunci..." 
+                           class="w-full bg-white border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-red-600">
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="space-y-1 text-xs">
+                    <div class="px-2 py-1 font-bold text-slate-400 uppercase tracking-wider text-[10px]">Langkah Utama</div>
+                    <a href="#langkah-1" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">1. Persiapan & Dependensi</a>
+                    <a href="#langkah-2" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">2. Clone Repo & Build Aset</a>
+                    <a href="#langkah-3" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">3. Konfigurasi Database MySQL</a>
+                    <a href="#langkah-4" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">4. Setup .env & Migrasi</a>
+                    <a href="#langkah-5" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">5. Permission & Optimasi Cache</a>
+                    <a href="#langkah-6" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">6. Nginx Server Block</a>
+                    <a href="#langkah-7" class="block px-2.5 py-1.5 rounded hover:bg-slate-100 text-slate-700 font-medium">7. Pasang SSL HTTPS</a>
+                </nav>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 w-full min-w-0 space-y-10">
+
+                <!-- INTRO NOTICE -->
+                <div class="p-4 bg-slate-50 border-l-4 border-red-600 rounded-r-lg">
+                    <h2 class="text-sm font-bold text-slate-900">Petunjuk Penggunaan:</h2>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Login ke server VPS Ubuntu Anda via SSH (<code class="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-mono text-slate-800">ssh root@IP_VPS_ANDA</code>). Jalankan perintah-perintah berikut sesuai urutan. Klik tombol <strong>Salin</strong> di setiap kotak perintah untuk menyalin kode langsung ke clipboard Anda.
+                    </p>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 1                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-1" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">1</span>
+                            <h2 class="text-base font-bold text-slate-900">Persiapan Server & Instalasi Dependensi</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="1" onchange="toggleStepCheck(1)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Perbarui Sistem & Paket Esensial:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-1a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-1a">sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl unzip zip nginx mysql-server</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Tambahkan PPA Resmi PHP & Pasang PHP 8.3:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-1b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-1b">sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:ondrej/php
+sudo apt update
+
+sudo apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-common \
+    php8.3-xml php8.3-curl php8.3-mbstring php8.3-zip php8.3-bcmath \
+    php8.3-intl php8.3-gd</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep C -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">C. Tetapkan PHP 8.3 sebagai Versi Default CLI:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-1c', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-1c">sudo update-alternatives --set php /usr/bin/php8.3
+php -v</code></pre>
+                            </div>
+                            <p class="text-slate-500 text-[11px] mt-1">Pastikan output menunjukkan PHP 8.3.x agar tidak terjadi error version mismatch pada composer.</p>
+                        </div>
+
+                        <!-- Substep D -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">D. Pasang Composer & Node.js (LTS v20):</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-1d', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-1d"># Pasang Composer
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+# Pasang Node.js LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 2                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-2" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">2</span>
+                            <h2 class="text-base font-bold text-slate-900">Kloning Repository & Build Aset</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="2" onchange="toggleStepCheck(2)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Clone Repository ke Direktori Web Server:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-2a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-2a">cd /var/www
+sudo git clone https://github.com/Masmas99/Masmas99
+cd /var/www/Masmas99</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Install Dependensi PHP & Compile Frontend:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-2b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-2b">composer install --optimize-autoloader --no-dev
+npm install
+npm run build</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 3                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-3" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">3</span>
+                            <h2 class="text-base font-bold text-slate-900">Konfigurasi Database (MySQL)</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="3" onchange="toggleStepCheck(3)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <p class="text-slate-600">
+                            <strong>Catatan Penting:</strong> Jangan gunakan user root MySQL untuk koneksi Laravel. Buat user tersendiri dengan izin akses ke host <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">localhost</code> dan <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">127.0.0.1</code>.
+                        </p>
+
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Masuk ke MySQL Prompt:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-3a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-3a">sudo mysql</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Eksekusi Perintah SQL Berikut:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>mysql console</span>
+                                    <button onclick="copySnippet('cmd-3b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-3b">CREATE DATABASE IF NOT EXISTS `database`;
+CREATE USER IF NOT EXISTS 'mashudiusername'@'localhost' IDENTIFIED BY 'PasswordKuat123#';
+CREATE USER IF NOT EXISTS 'mashudiusername'@'127.0.0.1' IDENTIFIED BY 'PasswordKuat123#';
+GRANT ALL PRIVILEGES ON `database`.* TO 'mashudiusername'@'localhost';
+GRANT ALL PRIVILEGES ON `database`.* TO 'mashudiusername'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EXIT;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 4                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-4" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">4</span>
+                            <h2 class="text-base font-bold text-slate-900">Setup Environment (.env) & Migrasi Database</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="4" onchange="toggleStepCheck(4)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Buat File .env dan Application Key:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-4a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-4a">cp .env.example .env
+php artisan key:generate</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Edit File .env:</div>
+                            <div class="code-box p-3 relative mb-3">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-nano-env', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-nano-env">nano .env</code></pre>
+                            </div>
+
+                            <div class="font-semibold text-slate-800 mb-1">Sesuaikan parameter konfigurasi berikut:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>.env</span>
+                                    <button onclick="copySnippet('cmd-4b', this)" class="text-slate-300 hover:text-white font-semibold">Salin Konfigurasi</button>
+                                </div>
+                                <pre><code id="cmd-4b">APP_NAME=Laravel
+APP_ENV=local
+APP_KEY="base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=database
+DB_USERNAME=mashudiusername
+DB_PASSWORD="PasswordKuat123#"</code></pre>
+                            </div>
+                            <p class="text-slate-500 text-[11px] mt-1.5">Simpan di Nano: tekan <kbd class="bg-slate-100 border border-slate-300 px-1 py-0.5 rounded font-mono text-slate-800">Ctrl + O</kbd> lalu <kbd class="bg-slate-100 border border-slate-300 px-1 py-0.5 rounded font-mono text-slate-800">Enter</kbd>, kemudian keluar dengan <kbd class="bg-slate-100 border border-slate-300 px-1 py-0.5 rounded font-mono text-slate-800">Ctrl + X</kbd>.</p>
+                        </div>
+
+                        <!-- Substep C -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">C. Bersihkan Cache Config & Jalankan Migrasi:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-4c', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-4c">php artisan config:clear
+php artisan migrate --force
+php artisan storage:link</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 5                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-5" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">5</span>
+                            <h2 class="text-base font-bold text-slate-900">Pengaturan Permission Direktori & Optimasi Cache</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="5" onchange="toggleStepCheck(5)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Atur Kepemilikan dan Izin Tulis untuk Nginx (www-data):</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-5a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-5a">sudo chown -R www-data:www-data /var/www/absensi
+sudo chmod -R 775 /var/www/absensi/storage /var/www/absensi/bootstrap/cache</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Jalankan Cache Produksi:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-5b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-5b">php artisan config:cache
+php artisan route:cache
+php artisan view:cache</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 6                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-6" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">6</span>
+                            <h2 class="text-base font-bold text-slate-900">Konfigurasi Nginx Server Block (Virtual Host)</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="6" onchange="toggleStepCheck(6)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Buat File Virtual Host:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-6a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-6a">sudo nano /etc/nginx/sites-available/absensi</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Isi dengan Konfigurasi Nginx Berikut:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>/etc/nginx/sites-available/absensi</span>
+                                    <button onclick="copySnippet('cmd-6b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-6b">server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name absensi.domainanda.com;
+    root /var/www/absensi/public;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.php index.html;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep C -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">C. Aktifkan Site & Reload Web Server:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-6c', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-6c">sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/absensi /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart php8.3-fpm
+sudo systemctl reload nginx</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- LANGKAH 7                                  -->
+                <!-- ========================================== -->
+                <section id="langkah-7" class="step-section border border-slate-200 rounded-xl p-6 bg-white shadow-sm scroll-mt-20">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-xs flex items-center justify-center">7</span>
+                            <h2 class="text-base font-bold text-slate-900">Pasang SSL HTTPS (Certbot Let's Encrypt)</h2>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer no-print">
+                            <input type="checkbox" data-step="7" onchange="toggleStepCheck(7)" class="rounded border-slate-300 text-red-600 focus:ring-0">
+                            <span>Selesai</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-5 text-xs">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded text-red-800 leading-relaxed">
+                            <strong>Wajib untuk Akses Kamera / GPS:</strong> Browser memblokir API perangkat keras (Kamera/Webcam & Geolocation) jika diakses lewat HTTP biasa (IP publik). Pasang SSL dengan Certbot:
+                        </div>
+
+                        <!-- Substep A -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">A. Install Certbot Nginx:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-7a', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-7a">sudo apt install -y certbot python3-certbot-nginx</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep B -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">B. Daftarkan Sertifikat Domain:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-7b', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-7b">sudo certbot --nginx -d absensi.domainanda.com</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Substep C -->
+                        <div>
+                            <div class="font-semibold text-slate-800 mb-1">C. Sesuaikan APP_URL di .env:</div>
+                            <div class="code-box p-3 relative">
+                                <div class="flex justify-between items-center text-slate-400 text-[11px] mb-2 pb-1 border-b border-slate-800">
+                                    <span>terminal</span>
+                                    <button onclick="copySnippet('cmd-7c', this)" class="text-slate-300 hover:text-white font-semibold">Salin</button>
+                                </div>
+                                <pre><code id="cmd-7c"># Buka nano .env dan ubah menjadi HTTPS:
+# APP_URL=https://absensi.domainanda.com
+
+# Kemudian refresh cache konfigurasi:
+php artisan config:cache</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded shadow-lg translate-y-16 opacity-0 transition-all duration-200">
+        Perintah berhasil disalin!
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const config = {
+            repoUrl: 'https://github.com/Masmas99/Masmas99',
+            folderName: 'Masmas99',
+            domain: 'masmas.domainanda.com',
+            dbName: 'database',
+            dbUser: 'mashudiusername',
+            dbPassword: 'PasswordKuat123#',
+            phpVersion: '8.3',
+            appName: 'Laravel'
+        };
+
+        function getRepoNameFromUrl(url) {
+            try {
+                const parts = (url || '').split('/').filter(Boolean);
+                const last = parts[parts.length - 1] || 'Masmas99';
+                return last.replace(/\.git$/i, '').trim();
+            } catch(e) {
+                return 'Masmas99';
+            }
+        }
+
+        function loadStoredConfig() {
+            const saved = localStorage.getItem('vps_deploy_config_v5');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(config, parsed);
+
+                    document.getElementById('inputRepoUrl').value = config.repoUrl;
+                    document.getElementById('inputFolderName').value = config.folderName;
+                    document.getElementById('inputDomain').value = config.domain;
+                    document.getElementById('inputDbName').value = config.dbName;
+                    document.getElementById('inputDbUser').value = config.dbUser;
+                    document.getElementById('inputDbPassword').value = config.dbPassword;
+                    document.getElementById('inputPhpVersion').value = config.phpVersion;
+                    document.getElementById('inputAppName').value = config.appName;
+                } catch(e) {}
+            }
+        }
+
+        function applyConfiguration() {
+            config.repoUrl = document.getElementById('inputRepoUrl').value.trim() || 'https://github.com/Masmas99/Masmas99';
+            config.folderName = document.getElementById('inputFolderName').value.trim() || getRepoNameFromUrl(config.repoUrl);
+            config.domain = document.getElementById('inputDomain').value.trim() || 'masmas.domainanda.com';
+            config.dbName = document.getElementById('inputDbName').value.trim() || 'database';
+            config.dbUser = document.getElementById('inputDbUser').value.trim() || 'mashudiusername';
+            config.dbPassword = document.getElementById('inputDbPassword').value.trim() || 'PasswordKuat123#';
+            config.phpVersion = document.getElementById('inputPhpVersion').value || '8.3';
+            config.appName = document.getElementById('inputAppName').value.trim() || 'Laravel';
+
+            localStorage.setItem('vps_deploy_config_v5', JSON.stringify(config));
+
+            document.getElementById('labelFolder').textContent = config.folderName;
+            document.getElementById('labelDomain').textContent = config.domain;
+            document.getElementById('labelDb').textContent = config.dbName;
+
+            updateAllSnippets();
+
+            const notice = document.getElementById('saveNotice');
+            notice.classList.remove('hidden');
+            setTimeout(() => notice.classList.add('hidden'), 2500);
+
+            showToast("Parameter diperbarui!");
+        }
+
+        function resetDefaultConfig() {
+            localStorage.removeItem('vps_deploy_config_v5');
+            document.getElementById('inputRepoUrl').value = 'https://github.com/Masmas99/Masmas99';
+            document.getElementById('inputFolderName').value = 'Masmas99';
+            document.getElementById('inputDomain').value = 'masmas.domainanda.com';
+            document.getElementById('inputDbName').value = 'database';
+            document.getElementById('inputDbUser').value = 'mashudiusername';
+            document.getElementById('inputDbPassword').value = 'PasswordKuat123#';
+            document.getElementById('inputPhpVersion').value = '8.3';
+            document.getElementById('inputAppName').value = 'Laravel';
+            applyConfiguration();
+        }
+
+        function updateAllSnippets() {
+            const v = config.phpVersion;
+            const f = config.folderName;
+            const d = config.domain;
+            const dbN = config.dbName;
+            const dbU = config.dbUser;
+            const dbP = config.dbPassword;
+            const app = config.appName;
+            const r = config.repoUrl;
+
+            // 1B
+            document.getElementById('cmd-1b').textContent = 
+`sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:ondrej/php
+sudo apt update
+
+sudo apt install -y php${v} php${v}-cli php${v}-fpm php${v}-mysql php${v}-common \\
+    php${v}-xml php${v}-curl php${v}-mbstring php${v}-zip php${v}-bcmath \\
+    php${v}-intl php${v}-gd`;
+
+            // 1C
+            document.getElementById('cmd-1c').textContent = 
+`sudo update-alternatives --set php /usr/bin/php${v}
+php -v`;
+
+            // 2A: Clean git clone without unnecessary trailing folder if matching
+            const repoName = getRepoNameFromUrl(r);
+            let cloneCmd = `sudo git clone ${r}`;
+            if (f && f !== repoName) {
+                cloneCmd = `sudo git clone ${r} ${f}`;
+            }
+            const targetDir = f || repoName;
+
+            document.getElementById('cmd-2a').textContent = 
+`cd /var/www
+${cloneCmd}
+cd /var/www/${targetDir}`;
+
+            // 3B
+            document.getElementById('cmd-3b').textContent = 
+`CREATE DATABASE IF NOT EXISTS \`${dbN}\`;
+CREATE USER IF NOT EXISTS '${dbU}'@'localhost' IDENTIFIED BY '${dbP}';
+CREATE USER IF NOT EXISTS '${dbU}'@'127.0.0.1' IDENTIFIED BY '${dbP}';
+GRANT ALL PRIVILEGES ON \`${dbN}\`.* TO '${dbU}'@'localhost';
+GRANT ALL PRIVILEGES ON \`${dbN}\`.* TO '${dbU}'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EXIT;`;
+
+            // 4B
+            let formattedAppUrl = d || 'localhost:8000';
+            if (!formattedAppUrl.startsWith('http://') && !formattedAppUrl.startsWith('https://')) {
+                formattedAppUrl = 'http://' + formattedAppUrl;
+            }
+
+            document.getElementById('cmd-4b').textContent = 
+`APP_NAME=${app}
+APP_ENV=local
+APP_KEY="base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+APP_DEBUG=true
+APP_URL=${formattedAppUrl}
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=${dbN}
+DB_USERNAME=${dbU}
+DB_PASSWORD="${dbP}"`;
+
+            // 5A
+            document.getElementById('cmd-5a').textContent = 
+`sudo chown -R www-data:www-data /var/www/${targetDir}
+sudo chmod -R 775 /var/www/${targetDir}/storage /var/www/${targetDir}/bootstrap/cache`;
+
+            // 6A
+            document.getElementById('cmd-6a').textContent = `sudo nano /etc/nginx/sites-available/${targetDir}`;
+
+            // 6B
+            document.getElementById('cmd-6b').textContent = 
+`server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name ${d};
+    root /var/www/${targetDir}/public;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.php index.html;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \\.php$ {
+        fastcgi_pass unix:/var/run/php/php${v}-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\\.(?!well-known).* {
+        deny all;
+    }
+}`;
+
+            // 6C
+            document.getElementById('cmd-6c').textContent = 
+`sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/${targetDir} /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart php${v}-fpm
+sudo systemctl reload nginx`;
+
+            // 7B
+            document.getElementById('cmd-7b').textContent = `sudo certbot --nginx -d ${d}`;
+
+            // 7C
+            document.getElementById('cmd-7c').textContent = 
+`# Buka nano .env dan ubah menjadi HTTPS:
+# APP_URL=https://${d}
+
+# Kemudian refresh cache konfigurasi:
+php artisan config:cache`;
+        }
+
+        // Copy functionality with fallback
+        function copySnippet(elementId, btnElement) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const text = el.innerText || el.textContent;
+
+            const onSuccess = () => {
+                showToast("Tersalin ke clipboard!");
+                if (btnElement) {
+                    const originalText = btnElement.innerText;
+                    btnElement.innerText = "Tersalin!";
+                    btnElement.classList.add("text-green-400");
+                    setTimeout(() => {
+                        btnElement.innerText = originalText;
+                        btnElement.classList.remove("text-green-400");
+                    }, 1800);
+                }
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+            } else {
+                fallbackCopy(text, onSuccess);
+            }
+        }
+
+        function fallbackCopy(text, cb) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                if (cb) cb();
+            } catch (err) {
+                showToast("Silakan blok teks dan salin manual.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        let toastTimer;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('translate-y-16', 'opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-16', 'opacity-0');
+            }, 2000);
+        }
+
+        // Checklist logic
+        function toggleStepCheck(stepNum) {
+            const cb = document.querySelector(`input[data-step="${stepNum}"]`);
+            const isChecked = cb ? cb.checked : false;
+            const section = document.getElementById(`langkah-${stepNum}`);
+            if (section) {
+                if (isChecked) {
+                    section.classList.add('border-green-400', 'bg-green-50/20');
+                } else {
+                    section.classList.remove('border-green-400', 'bg-green-50/20');
+                }
+            }
+            saveChecklist();
+            updateChecklistUI();
+        }
+
+        function saveChecklist() {
+            const checked = [];
+            for (let i = 1; i <= 7; i++) {
+                const cb = document.querySelector(`input[data-step="${i}"]`);
+                if (cb && cb.checked) checked.push(i);
+            }
+            localStorage.setItem('vps_deploy_checklist_v2', JSON.stringify(checked));
+        }
+
+        function loadChecklist() {
+            const saved = localStorage.getItem('vps_deploy_checklist_v2');
+            if (saved) {
+                try {
+                    const checked = JSON.parse(saved);
+                    checked.forEach(stepNum => {
+                        const cb = document.querySelector(`input[data-step="${stepNum}"]`);
+                        if (cb) cb.checked = true;
+                        const section = document.getElementById(`langkah-${stepNum}`);
+                        if (section) {
+                            section.classList.add('border-green-400', 'bg-green-50/20');
+                        }
+                    });
+                } catch(e) {}
+            }
+            updateChecklistUI();
+        }
+
+        function updateChecklistUI() {
+            let count = 0;
+            for (let i = 1; i <= 7; i++) {
+                const cb = document.querySelector(`input[data-step="${i}"]`);
+                if (cb && cb.checked) count++;
+            }
+            const pct = Math.round((count / 7) * 100);
+            document.getElementById('topProgressBar').style.width = pct + '%';
+            document.getElementById('sideProgressBar').style.width = pct + '%';
+            document.getElementById('progressLabel').textContent = `${count} / 7 Selesai`;
+        }
+
+        function resetChecklist() {
+            localStorage.removeItem('vps_deploy_checklist_v2');
+            for (let i = 1; i <= 7; i++) {
+                const cb = document.querySelector(`input[data-step="${i}"]`);
+                if (cb) cb.checked = false;
+                const sec = document.getElementById(`langkah-${i}`);
+                if (sec) {
+                    sec.classList.remove('border-green-400', 'bg-green-50/20');
+                }
+            }
+            updateChecklistUI();
+            showToast("Checklist direset.");
+        }
+
+        // Live Filter
+        document.getElementById('searchFilter').addEventListener('input', function(e) {
+            const val = e.target.value.toLowerCase().trim();
+            const sections = document.querySelectorAll('.step-section');
+            sections.forEach(sec => {
+                const text = sec.textContent.toLowerCase();
+                if (!val || text.includes(val)) {
+                    sec.style.display = 'block';
+                } else {
+                    sec.style.display = 'none';
+                }
+            });
+        });
+
+        // Auto sync folder name when repo URL changes
+        document.getElementById('inputRepoUrl').addEventListener('input', function(e) {
+            const extracted = getRepoNameFromUrl(e.target.value.trim());
+            if (extracted) {
+                document.getElementById('inputFolderName').value = extracted;
+            }
+        });
+
+        // Real-time synchronization for all Generator inputs
+        ['inputRepoUrl', 'inputFolderName', 'inputDomain', 'inputDbName', 'inputDbUser', 'inputDbPassword', 'inputAppName', 'inputPhpVersion'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const evt = (el.tagName === 'SELECT') ? 'change' : 'input';
+            el.addEventListener(evt, () => {
+                config.repoUrl = document.getElementById('inputRepoUrl').value.trim() || 'https://github.com/Masmas99/Masmas99';
+                config.folderName = document.getElementById('inputFolderName').value.trim() || getRepoNameFromUrl(config.repoUrl);
+                config.domain = document.getElementById('inputDomain').value.trim() || 'masmas.domainanda.com';
+                config.dbName = document.getElementById('inputDbName').value.trim() || 'database';
+                config.dbUser = document.getElementById('inputDbUser').value.trim() || 'mashudiusername';
+                config.dbPassword = document.getElementById('inputDbPassword').value.trim() || 'PasswordKuat123#';
+                config.phpVersion = document.getElementById('inputPhpVersion').value || '8.3';
+                config.appName = document.getElementById('inputAppName').value.trim() || 'Laravel';
+
+                document.getElementById('labelFolder').textContent = config.folderName;
+                document.getElementById('labelDomain').textContent = config.domain;
+                document.getElementById('labelDb').textContent = config.dbName;
+
+                updateAllSnippets();
+            });
+        });
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStoredConfig();
+            updateAllSnippets();
+            loadChecklist();
+        });
+    </script>
+</body>
+</html>
